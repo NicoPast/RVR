@@ -15,7 +15,7 @@ int main(int argc, char **argv){
     memset((void *) &hints, 0, sizeof(addrinfo));
 
     if(argc < 2) {
-        std::cerr << "Missing arguments:\n Here's an example: ./gai www.google.com http\n";
+        std::cerr << "Missing arguments:\n Here's an example: ./gai www.google.com || ./gai www.google.com http\n";
         return -1;
     }
 
