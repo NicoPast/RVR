@@ -19,10 +19,10 @@ int main(int argc, char **argv){
         return -1;
     }
 
+    // permite filtrar las direcciones
     hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
 
-    int ret = getaddrinfo(argv[1], argv[2], NULL, &res);
+    int ret = getaddrinfo(argv[1], argv[2], &hints, &res);
 
     if(ret != 0) {
         std::cerr << "Error: Name or service not known -> " << argv[1] << "\n";
