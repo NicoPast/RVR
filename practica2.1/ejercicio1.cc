@@ -31,12 +31,19 @@ int main(int argc, char **argv){
 
     for(auto i = res; i != nullptr; i = i->ai_next) {
         char host[NI_MAXHOST];
-        getnameinfo(i->ai_addr, i->ai_addrlen, host, NI_MAXHOST, NULL, NI_MAXSERV, NI_NUMERICHOST | NI_NUMERICSERV);
+        
+        if(getnameinfo(i->ai_addr, i->ai_addrlen, host, NI_MAXHOST, NULL, NI_MAXSERV, NI_NUMERICHOST | NI_NUMERICSERV) != 0){
+            std::cerr << "Error getting the name info from one of the dirs\n";
+            freeaddrinfo(res);
+            return -1;
+        }
 
         std::cout << std::left << "Host: " << std::setw(25) << host 
                   << " Family: " << std::setw(3) << i->ai_family 
                   << " SocketType: " << i->ai_socktype << std::endl;
     }
 
+    freeaddrinfo(res);
+    
     return 0;
 }
