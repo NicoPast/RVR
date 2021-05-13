@@ -35,7 +35,7 @@ int main(int argc, char **argv)
 
     if (ret != 0)
     {
-        std::cerr << "Error: Name or service not known -> " << argv[1] << "\n";
+        std::cerr << "Error: IP or port not known -> " << argv[1] << ":" << argv[2] << "\n";
         return -1;
     }
 
@@ -109,10 +109,11 @@ int main(int argc, char **argv)
         default:
             if (sendto(sd, "Comando no soportado\n", 21, 0, &client, clientlen) == -1)
             {
-                std::cerr << "Error sending bytes to socket: " << errno << std::endl;
+                std::cerr << "Error sending bytes to client: " << errno << std::endl;
                 close(sd);
                 return -1;
             }
+            buff[bytes] = '\n';
             std::cout << "Comando no soportado " << buff;
             continue;
         }
@@ -125,7 +126,7 @@ int main(int argc, char **argv)
 
             if (sendto(sd, val, tam+1, 0, &client, clientlen) == -1)
             {
-                std::cerr << "Error sending bytes to socket: " << errno << std::endl;
+                std::cerr << "Error sending bytes to client: " << errno << std::endl;
                 close(sd);
                 return -1;
             }

@@ -25,7 +25,7 @@ int main(int argc, char **argv){
     int ret = getaddrinfo(argv[1], argv[2], &hints, &res);
 
     if(ret != 0) {
-        std::cerr << "Error: Name or service not known -> " << argv[1] << "\n";
+        std::cerr << "Error: Name or service not known -> " << argv[1] << " " << argv[2] << "\n";
         return -1;
     }
 
