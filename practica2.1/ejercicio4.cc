@@ -7,9 +7,6 @@
 
 #include <string.h>
 #include <iostream>
-#include <iomanip>
-
-#include <time.h>
 
 const int MAX_BUFF_SIZE = 80;
 
@@ -93,7 +90,7 @@ int main(int argc, char **argv)
 
     while (true)
     {
-        char buff[MAX_BUFF_SIZE] = {};
+        char buff[MAX_BUFF_SIZE] = {0};
 
         struct sockaddr client;
         socklen_t clientlen = sizeof(sockaddr);

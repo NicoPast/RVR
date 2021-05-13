@@ -113,7 +113,16 @@ int main(int argc, char **argv)
                 close(sd);
                 return -1;
             }
-            buff[bytes] = '\n';
+            if (bytes < MAX_BUFF_SIZE-1)
+            {
+                buff[bytes] = '\n';
+                buff[bytes+1] = '\0';
+            }
+            else
+            {
+                buff[MAX_BUFF_SIZE-2] = '\n';
+                buff[MAX_BUFF_SIZE-1] = '\0';
+            }
             std::cout << "Comando no soportado " << buff;
             continue;
         }
@@ -122,9 +131,18 @@ int main(int argc, char **argv)
         {
             char val[MAX_BUFF_SIZE];
             int tam = strftime(val, MAX_BUFF_SIZE, flag, t);
-            val[tam] = '\n';
+            if (tam < MAX_BUFF_SIZE-1)
+            {
+                val[tam] = '\n';
+                val[tam + 1] = '\0';
+            }
+            else
+            {
+                val[MAX_BUFF_SIZE - 2] = '\n';
+                val[MAX_BUFF_SIZE - 1] = '\0';
+            }
 
-            if (sendto(sd, val, tam+1, 0, &client, clientlen) == -1)
+            if (sendto(sd, val, tam + 1, 0, &client, clientlen) == -1)
             {
                 std::cerr << "Error sending bytes to client: " << errno << std::endl;
                 close(sd);

@@ -17,15 +17,15 @@ int main(int argc, char **argv)
 
     memset((void *)&hints, 0, sizeof(addrinfo));
 
-    if (argc < 4)
+    if (argc < 3)
     {
-        std::cerr << "Missing arguments:\n\tHere's an example: ./time_client 0.0.0.0 3000 t\n";
+        std::cerr << "Missing arguments:\n\tHere's an example: ./echo_client 0.0.0.0 3000\n";
         return -1;
     }
 
     // permite filtrar las direcciones
     hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_socktype = SOCK_STREAM;
 
     int ret = getaddrinfo(argv[1], argv[2], &hints, &res);
 
@@ -46,8 +46,6 @@ int main(int argc, char **argv)
 
     freeaddrinfo(res);
 
-    char buff[MAX_BUFF_SIZE];
-
     struct sockaddr_in server;
     socklen_t serverlen = sizeof(sockaddr_in);
 
@@ -55,33 +53,37 @@ int main(int argc, char **argv)
     server.sin_port = htons(atoi(argv[2]));
     server.sin_addr.s_addr = INADDR_ANY;
 
-    char send[MAX_BUFF_SIZE];
-    strncpy(send, argv[3], MAX_BUFF_SIZE);
-
-    if (sendto(sd, argv[3], strlen(argv[3]), 0, (const struct sockaddr *)&server, serverlen) == -1)
+    if (connect(sd, (const struct sockaddr *)&server, serverlen) == -1)
     {
-        std::cerr << "Error sending bytes to server: " << errno << std::endl;
+        std::cerr << "Error connecting to the server " << errno << std::endl;
         close(sd);
         return -1;
     }
-    if (argv[3][0] != 'q')
+
+    while (true)
     {
-        int bytes = recvfrom(sd, buff, MAX_BUFF_SIZE, 0, (struct sockaddr *)&server, &serverlen);
+        char* buff = NULL;
+        size_t len = MAX_BUFF_SIZE;
+        size_t line = getline(&buff, &len, stdin);
+
+        if(buff[0] == 'Q' && (line == 1 || line == 2)){
+            break;
+        }
+
+        if (send(sd, buff, strlen(buff), 0) == -1)
+        {
+            std::cerr << "Error sending bytes to server: " << errno << std::endl;
+            close(sd);
+            return -1;
+        }
+
+        int bytes = recv(sd, buff, strlen(buff), 0);
 
         if (bytes == -1)
         {
             std::cerr << "Error recieving data from server: " << errno << std::endl;
             close(sd);
             return -1;
-        }
-
-        if (bytes < MAX_BUFF_SIZE-1)
-        {
-            buff[bytes] = '\0';
-        }
-        else
-        {
-            buff[MAX_BUFF_SIZE - 1] = '\0';
         }
 
         std::cout << buff;
