@@ -18,7 +18,6 @@
 const int MAX_BUFF_SIZE = 80;
 const int MAX_THREAD = 5;
 const int SLEEP_TIME = 3;
-const bool SHUT_EVERYONE_OFF = false;
 
 bool active = true;
 
@@ -26,14 +25,14 @@ class messageThread
 {
 public:
     messageThread() {}
-    messageThread(int sd, int id, int sleep = SLEEP_TIME) : _clientSd(sd), _shortId(id), _t(&messageThread::do_conexion, this), _sleepTime(sleep) 
+    messageThread(int sd, int id, int sleep = SLEEP_TIME) : _clientSd(sd), _shortId(id), _t(&messageThread::do_conexion, this), _sleepTime(sleep)
     {
-        _t.detach();
+        //_t.detach();
     }
     ~messageThread()
     {
-        std::cout << "Saliendo del thread: " << _id << " [" << _shortId << "]" << std::endl;
         _t.join();
+        std::cout << "Cerrando el thread: " << _id << " [" << _shortId << "]" << std::endl;
     }
     void do_conexion()
     {
@@ -46,19 +45,19 @@ public:
 
             if (bytes == -1)
             {
-                std::cerr << "Thread " << _id  << " [" << _shortId << "]: Error recieving data from user: " << errno << std::endl;
+                std::cerr << "Thread " << _id << " [" << _shortId << "]: Error recieving data from user: " << errno << std::endl;
                 close(_clientSd);
                 return;
             }
             else if (bytes == 0)
             {
-                std::cout << "Thread " << _id  << " [" << _shortId << "]: Conexión terminada\n";
+                std::cout << "Thread " << _id << " [" << _shortId << "]: Conexión terminada\n";
                 break;
             }
 
             if (send(_clientSd, buff, bytes, 0) == -1)
             {
-                std::cerr << "Thread " << _id  << " [" << _shortId << "]: Error sending bytes to client: " << errno << std::endl;
+                std::cerr << "Thread " << _id << " [" << _shortId << "]: Error sending bytes to client: " << errno << std::endl;
                 close(_clientSd);
                 return;
             }
@@ -82,34 +81,34 @@ std::string GetLineFromCin()
 }
 
 void do_conexion(int clientSd, int id)
+{
+    while (true)
     {
-        while (true)
+        char buff[MAX_BUFF_SIZE] = {0};
+
+        int bytes = recv(clientSd, buff, MAX_BUFF_SIZE, 0);
+
+        if (bytes == -1)
         {
-            char buff[MAX_BUFF_SIZE] = {0};
-
-            int bytes = recv(clientSd, buff, MAX_BUFF_SIZE, 0);
-
-            if (bytes == -1)
-            {
-                std::cerr << "[" << id << "] Error recieving data from user: " << errno << std::endl;
-                close(clientSd);
-                return;
-            }
-            else if (bytes == 0)
-            {
-                std::cout << "[" << id << "] Conexión terminada\n";
-                break;
-            }
-
-            if (send(clientSd, buff, bytes, 0) == -1)
-            {
-                std::cerr << "[" << id << "] Error sending bytes to client: " << errno << std::endl;
-                close(clientSd);
-                return;
-            }
+            std::cerr << "[" << id << "] Error recieving data from user: " << errno << std::endl;
+            close(clientSd);
+            return;
         }
-        close(clientSd);
+        else if (bytes == 0)
+        {
+            std::cout << "[" << id << "] Conexión terminada\n";
+            break;
+        }
+
+        if (send(clientSd, buff, bytes, 0) == -1)
+        {
+            std::cerr << "[" << id << "] Error sending bytes to client: " << errno << std::endl;
+            close(clientSd);
+            return;
+        }
     }
+    close(clientSd);
+}
 
 int main(int argc, char **argv)
 {
@@ -137,7 +136,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    int serverSd = socket(res->ai_family, res->ai_socktype, 0);
+    int serverSd = socket(res->ai_family, res->ai_socktype | SOCK_NONBLOCK, 0);
 
     if (serverSd == -1)
     {
@@ -166,10 +165,25 @@ int main(int argc, char **argv)
 
     int id = 0;
 
-    std::list<messageThread*> mThList;
+    std::list<messageThread *> mThList;
 
-    while (true)
+    auto future = std::async(std::launch::async, GetLineFromCin);
+    while (active)
     {
+        if (future.wait_for(std::chrono::milliseconds(1)) == std::future_status::ready)
+        {
+            auto line = future.get();
+            future = std::async(std::launch::async, GetLineFromCin);
+            std::cout << line << std::endl;
+
+            if (line == "q")
+            {
+                std::cout << "Closing, waiting for all active Streams to end...\n";
+                active = false;
+                break;
+            }
+        }
+
         struct sockaddr client;
         socklen_t clientlen = sizeof(sockaddr);
 
@@ -177,9 +191,14 @@ int main(int argc, char **argv)
 
         if (clientSd == -1)
         {
-            std::cerr << "Error: couldn't accept client: " << errno << std::endl;
-            close(serverSd);
-            return -1;
+            if (errno != 11)
+            {
+                std::cerr << "Error: couldn't accept client: " << errno << std::endl;
+                close(serverSd);
+                return -1;
+            }
+            else
+                continue;
         }
 
         char host[NI_MAXHOST];
@@ -200,6 +219,13 @@ int main(int argc, char **argv)
         mThList.push_front(new messageThread(clientSd, id));
     }
 
+    for (auto var : mThList)
+    {
+        delete var;
+    }
+
+    std::cout << "All streams are closed, shuting down server...\n";
     close(serverSd);
+    std::cout << "Press enter to close...\n";
     return 0;
 }
