@@ -48,7 +48,7 @@ public:
 
             if (bytes == -1)
             {
-                if (errno != EAGAIN && errno != EWOULDBLOCK)
+                if (errno != EAGAIN)
                 {
                     std::cerr << "Thread " << _id << " [" << _shortId << "]: Error recieving data from user: " << errno << std::endl;
                     return;
