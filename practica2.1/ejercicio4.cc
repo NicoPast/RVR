@@ -92,9 +92,6 @@ int main(int argc, char **argv)
     {
         char buff[MAX_BUFF_SIZE] = {0};
 
-        struct sockaddr client;
-        socklen_t clientlen = sizeof(sockaddr);
-
         int bytes = recv(clientSd, buff, MAX_BUFF_SIZE, 0);
 
         if (bytes == -1)
