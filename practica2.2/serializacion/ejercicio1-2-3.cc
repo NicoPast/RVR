@@ -36,6 +36,8 @@ public:
         //
         alloc_data(sData);
 
+        memset(_data, 0, sData);
+
         char* b = data();
 
         //memcpy(b, &sData, sizeof(sData));
@@ -47,6 +49,8 @@ public:
     int from_bin(char * data)
     {
         //
+        alloc_data(sData);
+
         char* b = data;
 
         memcpy(&x, b, sizeof(x));
