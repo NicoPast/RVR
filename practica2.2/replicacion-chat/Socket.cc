@@ -27,7 +27,7 @@ Socket::Socket(const char * address, const char * port):sd(-1)
 
     int sd = socket(res->ai_family, res->ai_socktype, 0);
 
-        if (sd == -1)
+    if (sd == -1)
     {
         std::cerr << "Error creating the socket: " << errno << std::endl;
         freeaddrinfo(res);

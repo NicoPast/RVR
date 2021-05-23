@@ -33,9 +33,10 @@ public:
 
     enum MessageType
     {
-        LOGIN   = 0,
-        MESSAGE = 1,
-        LOGOUT  = 2
+        LOGIN      = 0,
+        MESSAGE    = 1,
+        LOGOUT     = 2,
+        SERVER_MSG = 3
     };
 
     ChatMessage(){};

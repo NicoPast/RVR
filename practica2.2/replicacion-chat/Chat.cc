@@ -58,27 +58,69 @@ void ChatServer::do_messages()
          * crear un unique_ptr con el objeto socket recibido y usar std::move
          * para añadirlo al vector
          */
-        Socket* s;
-        ChatMessage msg;
-        socket.recv(msg, s);
+        Socket* client;
+        ChatMessage msgInp;
+        ChatMessage msgOut;
+        int r = socket.recv(msgInp, client);
+
+        if(r < 0){
+            continue;
+        }
+
         //Recibir Mensajes en y en función del tipo de mensaje
         // - LOGIN: Añadir al vector clients
         // - LOGOUT: Eliminar del vector clients
         // - MESSAGE: Reenviar el mensaje a todos los clientes (menos el emisor)
-        switch (msg.type)
+        switch (msgInp.type)
         {
-        case ChatMessage::MessageType::LOGIN:
-            /* code */
-            break;
-        case ChatMessage::MessageType::LOGOUT:
-            /* code */
-            break;
-        case ChatMessage::MessageType::MESSAGE:
-            /* code */
-            break;
-        default:
-            std::cout << "Message Type unknown " << msg.type << "\n";
-            break;
+            case ChatMessage::MessageType::LOGIN: {
+                std::unique_ptr<Socket> soc(client);
+                clients.push_back(std::move(soc));
+
+                std::string m = msgInp.nick + " logged in.";
+                msgOut.type = ChatMessage::SERVER_MSG;
+                msgOut.nick = "Server";
+                msgOut.message = m;
+                std::cout << m << "\n";
+                break;
+            }
+            case ChatMessage::MessageType::LOGOUT: {
+                auto it = clients.begin();
+                bool found = false;
+                while(it != clients.end() && !found){
+                    if(it->get() == client){
+                        found = true;
+                    }
+                    else it++;
+                }
+                
+                if(it != clients.end()){
+                    std::string m = msgInp.nick + " logged out.";
+                    clients.erase(it);
+                    msgOut.type = ChatMessage::SERVER_MSG;
+                    msgOut.nick = "Server";
+                    msgOut.message = m;
+                    std::cout << m << "\n";
+                }
+                else std::cout << "User not registered logged off\n";
+                break;
+            }
+            case ChatMessage::MessageType::MESSAGE: {
+                msgOut = msgInp;
+                std::cout << msgInp.nick << " sent: " << msgInp.message << "\n";
+                break;
+            }
+            default: 
+                std::cout << "Message Type unknown " << msgInp.type << "\n";
+                return;
+
+            auto it = clients.begin();
+            while(it != clients.end()) {
+                if((*it).get() != client){
+                    socket.send(msgOut, *(it)->get());
+                }
+                it++;
+            }
         }
     }
 }
@@ -99,6 +141,12 @@ void ChatClient::login()
 void ChatClient::logout()
 {
     // Completar
+    std::string m;
+
+    ChatMessage msg(nick, m);
+    msg.type = ChatMessage::LOGOUT;
+
+    socket.send(msg, socket);
 }
 
 void ChatClient::input_thread()
@@ -106,7 +154,14 @@ void ChatClient::input_thread()
     while (true)
     {
         // Leer stdin con std::getline
+        std::string inp;
+        
+        std::getline(std::cin, inp);
+
         // Enviar al servidor usando socket
+        ChatMessage msg(nick, inp);
+        msg.type = ChatMessage::MessageType::MESSAGE;
+        socket.send(msg, socket);
     }
 }
 
@@ -115,6 +170,19 @@ void ChatClient::net_thread()
     while(true)
     {
         //Recibir Mensajes de red
+        ChatMessage msgInp;
+        Socket* s;
+
+        int r = socket.recv(msgInp, s);
+
+        if(r <= 0){
+            continue;
+        }
         //Mostrar en pantalla el mensaje de la forma "nick: mensaje"
+
+        if(msgInp.type != ChatMessage::MessageType::SERVER_MSG){
+            std::cout << msgInp.nick << ": " << msgInp.message << "\n";
+        }
+        else std::cout << msgInp.message << "\n";
     }
 }
