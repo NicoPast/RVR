@@ -19,7 +19,7 @@ void ChatMessage::to_bin()
     memcpy(b, nick.c_str(), sizeof(char) * NICK_SIZE);
     b += sizeof(char) * NICK_SIZE;
 
-    memcpy(b, message.c_str(), sizeof(char) * MSG_SIZE);
+    memcpy(b, message.c_str(), sizeof(char) * message.length());
     b += sizeof(char) * MSG_SIZE;
 }
 
@@ -58,11 +58,28 @@ void ChatServer::do_messages()
          * crear un unique_ptr con el objeto socket recibido y usar std::move
          * para añadirlo al vector
          */
-
+        Socket* s;
+        ChatMessage msg;
+        socket.recv(msg, s);
         //Recibir Mensajes en y en función del tipo de mensaje
         // - LOGIN: Añadir al vector clients
         // - LOGOUT: Eliminar del vector clients
         // - MESSAGE: Reenviar el mensaje a todos los clientes (menos el emisor)
+        switch (msg.type)
+        {
+        case ChatMessage::MessageType::LOGIN:
+            /* code */
+            break;
+        case ChatMessage::MessageType::LOGOUT:
+            /* code */
+            break;
+        case ChatMessage::MessageType::MESSAGE:
+            /* code */
+            break;
+        default:
+            std::cout << "Message Type unknown " << msg.type << "\n";
+            break;
+        }
     }
 }
 
