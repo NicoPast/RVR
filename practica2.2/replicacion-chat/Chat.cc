@@ -51,6 +51,8 @@ int ChatMessage::from_bin(char * bobj)
 
 void ChatServer::do_messages()
 {
+    ChatMessage msgInp;
+    ChatMessage msgOut;
     while (true)
     {
         /*
@@ -59,8 +61,7 @@ void ChatServer::do_messages()
          * para añadirlo al vector
          */
         Socket* client;
-        ChatMessage msgInp;
-        ChatMessage msgOut;
+        
         int r = socket.recv(msgInp, client);
 
         if(r < 0){
@@ -78,17 +79,20 @@ void ChatServer::do_messages()
                 clients.push_back(std::move(soc));
 
                 std::string m = msgInp.nick + " logged in.";
+                //std::string m2 = "Connected users: " + std::to_string(clients.size());
                 msgOut.type = ChatMessage::SERVER_MSG;
-                msgOut.nick = "Server";
+                msgOut.nick = "SERV";
+                //msgOut.message = m2;
+                //socket.send(msgOut, *client);
                 msgOut.message = m;
-                std::cout << m << "\n";
+                std::cout << m << "\nInfo: " << *client << "\n";
                 break;
             }
             case ChatMessage::MessageType::LOGOUT: {
                 auto it = clients.begin();
                 bool found = false;
                 while(it != clients.end() && !found){
-                    if(it->get() == client){
+                    if(*((*it).get()) == *client){
                         found = true;
                     }
                     else it++;
@@ -113,14 +117,18 @@ void ChatServer::do_messages()
             default: 
                 std::cout << "Message Type unknown " << msgInp.type << "\n";
                 return;
+        }
 
-            auto it = clients.begin();
-            while(it != clients.end()) {
-                if((*it).get() != client){
-                    socket.send(msgOut, *(it)->get());
-                }
+        //std::cout << "Connected users:\n";
+        auto it = clients.begin();
+        while(it != clients.end()) {
+            // std::cout << *((*it).get()) << "\n";
+            if(*((*it).get()) == *client){
                 it++;
+                continue;
             }
+            socket.send(msgOut, *((*it).get()));
+            it++;
         }
     }
 }
@@ -159,9 +167,17 @@ void ChatClient::input_thread()
         std::getline(std::cin, inp);
 
         // Enviar al servidor usando socket
-        ChatMessage msg(nick, inp);
-        msg.type = ChatMessage::MessageType::MESSAGE;
-        socket.send(msg, socket);
+        if(inp == "q"){
+            ChatMessage msg(nick, inp);
+            msg.type = ChatMessage::MessageType::LOGOUT;
+            socket.send(msg, socket);
+            return;
+        }
+        else{
+            ChatMessage msg(nick, inp);
+            msg.type = ChatMessage::MessageType::MESSAGE;
+            socket.send(msg, socket);
+        }
     }
 }
 
@@ -175,11 +191,11 @@ void ChatClient::net_thread()
 
         int r = socket.recv(msgInp, s);
 
-        if(r <= 0){
+        if(r < 0){
             continue;
         }
-        //Mostrar en pantalla el mensaje de la forma "nick: mensaje"
 
+        //Mostrar en pantalla el mensaje de la forma "nick: mensaje"
         if(msgInp.type != ChatMessage::MessageType::SERVER_MSG){
             std::cout << msgInp.nick << ": " << msgInp.message << "\n";
         }
